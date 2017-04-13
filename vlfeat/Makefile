@@ -96,8 +96,8 @@ SHELL = /bin/bash
 all:
 
 # Select which features to disable
-# DISABLE_SSE2=yes
-# DISABLE_AVX=yes
+DISABLE_SSE2=yes
+DISABLE_AVX=yes
 # DISABLE_THREADS=yes
 # DISABLE_OPENMP=yes
 
@@ -214,7 +214,7 @@ march=64
 endif
 SDKROOT ?= $(shell xcrun -sdk macosx --show-sdk-path)
 MACOSX_DEPLOYMENT_TARGET ?= 10.4
-STD_CFLAGS += -m$(march) -isysroot $(SDKROOT) -mmacosx-version-min=$(MACOSX_DEPLOYMENT_TARGET)
+STD_CFLAGS += -isysroot $(SDKROOT) -mmacosx-version-min=$(MACOSX_DEPLOYMENT_TARGET)
 STD_LDFLAGS += -Wl,-syslibroot,$(SDKROOT) -mmacosx-version-min=$(MACOSX_DEPLOYMENT_TARGET)
 endif
 
@@ -228,8 +228,8 @@ endif
 # Target compatibility with GLIBC 2.3.4
 # 1) _GNU_SOURCE avoids using isoc99_fscanf, limiting binary portability to recent GLIBC.
 # 2) -fno-stack-protector avoids using a feature requiring GLBIC 2.4
-STD_CFLAGS += -m$(march) -D_GNU_SOURCE -fno-stack-protector
-STD_LDFLAGS += -m$(march) -Wl,--rpath,\$$ORIGIN/ -Wl,--as-needed
+STD_CFLAGS += -D_GNU_SOURCE -fno-stack-protector
+STD_LDFLAGS += -Wl,--rpath,\$$ORIGIN/ -Wl,--as-needed
 endif
 
 # Convert back DISALBE_*="no" flags to be empty
@@ -326,7 +326,6 @@ no_dep_targets := clean archclean distclean info help
 
 include make/dll.mak
 include make/bin.mak
-include make/matlab.mak
 include make/octave.mak
 include make/doc.mak
 include make/dist.mak

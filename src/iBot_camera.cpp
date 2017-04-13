@@ -23,7 +23,7 @@
 #include <ctime>
 #include <unistd.h>
 #define PLANO_FROM_CAM
-#define DEBUG
+//#define DEBUG
 
 using namespace cv;
 using namespace std;
@@ -57,16 +57,28 @@ std::string getDateTimeStamp();
 
 
 int main(int argc, char ** argv){
+	
+	 int xslide,yslide;
+	 float ImgResize,hogThreshold;
+	
+	
+	if(argc == 1){
+		
+	   ImgResize = 1.0;
+	   xslide = 3;
+	   yslide = 5;
+       hogThreshold = 0.022;
+	}
+	else{
+		hogThreshold = atof(argv[1]);
+		ImgResize = atof(argv[2]);
+		xslide = atoi(argv[3]);
+		yslide = atoi(argv[4]);
+	}
 
-//PARAMETER CHANGE
-    float ImgResize = atof(argv[2]);
     int windowSize = 3;
-    int yslide = atoi(argv[4]);
-    int xslide = atoi(argv[3]);
-    float hogThreshold = atof(argv[1]);
-
     double framesToSkip = 100; 
-    unsigned int delayForQuery = 10; //in seconds
+    unsigned int delayForQuery = 10; 
     
     raspicam::RaspiCam_Cv Camera;    
     cout<<"Opening Camera..."<<endl;
@@ -89,14 +101,15 @@ int main(int argc, char ** argv){
     cout << "entering capture mode ... " << endl;
     Camera.set(CV_CAP_PROP_POS_FRAMES,framesToSkip); 
 
-    Mat planogramSrc,querySrc,frame;
+    Mat planogramSrc,querySrc,frame,planogramCol;
     string tStampPlano = getDateTimeStamp();
 
     #ifdef PLANO_FROM_CAM
     cout << "capturing planogram Image from cam..." << endl;
     Camera.grab();
     Camera.retrieve(frame);
-    Mat planogramCol = frame.clone();
+    planogramSrc = frame.clone();
+    planogramCol = planogramSrc.clone();
     #else
     cout << "collecting planogram Image from disk..." << endl;
     vector<string> planoFiles = vector<string>();
@@ -116,7 +129,7 @@ int main(int argc, char ** argv){
 
     cvtColor(planogramSrc, planogramSrc, CV_BGR2GRAY);
     string planoFile = planoFolder + "plano_" + tStampPlano + ".jpg";
-    imwrite(planoFile,planogramSrc);
+    imwrite(planoFile,planogramCol);
 
     Mat planogramImg = resizeAndRescale(planogramSrc,ImgResize);
 
@@ -126,7 +139,7 @@ int main(int argc, char ** argv){
 
     while(1){
         cout << "entering sleep mode..." << endl;
-	    usleep(delayForQuery * 1000 * 1000); //the code sleeps for specified amount of minutes by delayForQuery
+	    usleep(delayForQuery * 1000 * 1000); 
 	    cout << "Capture resumed..." << endl;
 	    
 	    string tStampIns = getDateTimeStamp();
@@ -181,12 +194,7 @@ int main(int argc, char ** argv){
                     LINE_8,
                     0);
             }
-        #ifdef DEBUG
-        namedWindow("video", CV_WINDOW_NORMAL);
-        resizeWindow("video", 800, 800);
-        imshow("video",frame);
-        waitKey(30);
-        #endif
+     
 
         string diffStamp = getDateTimeStamp();
         string raw_diff = destSubDirPath + '/' + "diff_" + diffStamp + ".jpg";
@@ -222,9 +230,6 @@ int showNonMatches(cv::Mat imgMatRaw, cv::Mat imgMatRaw_2, vector<Point2f> nonMa
 
     int a = connectedComponentsWithStats(mask,labels,stats,centroids,8,CV_32S);
     float rescale = 1.0 / ImgResize;
-    //int patchResize = 3.0;
-
- 
     bool omit;
     int planogramIntegrity = 1;
 
@@ -233,12 +238,8 @@ int showNonMatches(cv::Mat imgMatRaw, cv::Mat imgMatRaw_2, vector<Point2f> nonMa
         omit = false;
 
         int hogArea = stats.at<int>(i,4);
-        //cout << "###################PATCH START " << i << " ###################" << endl;
-        //cout << "connected components area : " << hogArea << endl;
         int Area = (stats.at<int>(i,2) * stats.at<int>(i,3));
-        //cout << "Bounding box Area : " << Area << endl;
         float hogAreaRatio = (float)hogArea/float(Area);
-        //cout << "hogAreaRatio : " << hogAreaRatio << endl;
 
 
         if(hogArea > 42000){
@@ -297,13 +298,6 @@ int showNonMatches(cv::Mat imgMatRaw, cv::Mat imgMatRaw_2, vector<Point2f> nonMa
   
     if(omit == true){
         planogramIntegrity = -1;
-        for (int i = 0;i < nonMatchVector.size();i++){
-             circle(imgMat_2Copy,cvPoint(nonMatchVector[i].x,nonMatchVector[i].y),myradius,Scalar(0,0,255),-1,8);  
-        }
-        imwrite(write_final,imgMat_2Copy);
-    }
-    else{
-        imwrite(write_final,imgMat_2);
     }
 
     return planogramIntegrity;
@@ -576,9 +570,6 @@ vector<vector<vector<float> > > extractHOG(cv::Mat dataMat, vl_size& hogWidth, v
     vl_size cellSize = 8;
     vl_size numChannels = 1;
 
-    //VlHogVariantUoctti
-    //VlHogVariantDalalTriggs
-
     VlHog * hog = vl_hog_new(VlHogVariantDalalTriggs, numOrientations, VL_FALSE);
 
     vl_hog_put_image(hog, hogData, dataMat.cols, dataMat.rows, numChannels, cellSize);
@@ -590,8 +581,6 @@ vector<vector<vector<float> > > extractHOG(cv::Mat dataMat, vl_size& hogWidth, v
 
     finalHOG = (float *)vl_malloc(hogWidth*hogHeight*hogDimension*sizeof(float));
     vl_hog_extract(hog,finalHOG);
-    //vector<vector<vector<float> > > hogVec;
-
 
 
     vector<vector<vector<float> > > hogVec(hogHeight, vector<vector<float> >(hogWidth, vector<float>(hogDimension)));
@@ -643,8 +632,7 @@ double windowDistanceNorm(std::vector<float> window1,std::vector<float> window2)
 
 std::vector<Point2f> formWindowAndCompare(vector<vector<vector<float> > > planoHog,vector<vector<vector<float> > > queryHog, 
     int windowSize, int xslide, int yslide, vl_size hogWidth, vl_size hogHeight, vl_size hogDimension, float hogThreshold){
-    //std::cout<<hogWidth<<" "<<hogHeight<<" "<<hogDimension<<"\n";
-     int windowForm = (windowSize - 1) / 2; //assertion required
+     int windowForm = (windowSize - 1) / 2; 
      bool found;
      std::vector<Point2f> nonmatchesHOG;
      int count = 0;
@@ -653,7 +641,6 @@ std::vector<Point2f> formWindowAndCompare(vector<vector<vector<float> > > planoH
         for(int j = (0 + (xslide + windowForm)); j < (hogWidth - (xslide + windowForm)); j++){
 
             found = false;
-            //planogram image window
             std::vector<float> window1;
             float dimensionSum;
             float dimensionAvg;
@@ -672,9 +659,6 @@ std::vector<Point2f> formWindowAndCompare(vector<vector<vector<float> > > planoH
                 window1.push_back(dimensionAvg);
             }
 
-            //cout << window1.size() << endl;
-
-            //query image window
             for(int a = (i - yslide); a <= (i + yslide); a++){
                 for(int b = (j - xslide); b <= (j + xslide); b++){
 
@@ -690,28 +674,15 @@ std::vector<Point2f> formWindowAndCompare(vector<vector<vector<float> > > planoH
                             }
                         }
                     dimensionAvg = dimensionSum / (float)numWindows;
-                    //cout << "dimensionAvg : " << dimensionAvg << endl;
                     window2.push_back(dimensionAvg);
-                    }
-            //cout << window2.size() << endl;
-
-
-              
+                    }            
 
                     if(eucledianNorm(window1) < 1e-8 && eucledianNorm(window2) < 1e-8){
                         found = true;
                         break;
                     }
 
-
-                    //double a = 1.0-windowDistanceNorm(window1,window2);
-
                     double a = absoluteDistance(window1,window2);
-
-                    //cout << "histogram distance : " << a << endl;
-                    //double a = compareHist(window1,window2,3);
-                    //a = a/window1.size();
-                    //cout << a << endl;
 
                     if (a < hogThreshold){
                         found = true;
@@ -749,7 +720,6 @@ double absoluteDistance(std::vector<float> window1,std::vector<float> window2){
        
     }
     sum = sum / window1.size();
-    //cout << "distance : " << sum << endl;
     return sum;
 }
 

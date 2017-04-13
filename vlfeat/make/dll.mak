@@ -73,7 +73,7 @@ endif
 # Linux-64
 ifeq ($(ARCH),glnxa64)
 DLL_SUFFIX := so
-DLL_LDFLAGS += -m64
+
 endif
 
 # --------------------------------------------------------------------

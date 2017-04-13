@@ -441,6 +441,11 @@ _vl_cpuid (vl_int32* info, int function)
 
 #endif
 
+
+
+
+#if defined(HAS_CPUID)
+
 void
 _vl_x86cpu_info_init (VlX86CpuInfo *self)
 {
@@ -464,6 +469,7 @@ _vl_x86cpu_info_init (VlX86CpuInfo *self)
   }
 }
 
+#endif
 char *
 _vl_x86cpu_info_to_string_copy (VlX86CpuInfo const *self)
 {

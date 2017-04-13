@@ -53,13 +53,26 @@ void queryProcess(Mat,Rect,int,int, Rect &, Rect &);
 
 
 int main(int argc, char ** argv){
+	
+	
+	float ImgResize,hogThreshold;
+	int xslide,yslide;
 
-//PARAMETER CHANGE
-    float ImgResize = atof(argv[2]);
+    if (argc == 1){
+		
+	   ImgResize = 1.0;
+	   xslide = 3;
+	   yslide = 5;
+       hogThreshold = 0.022;
+	}
+	else{
+	   hogThreshold = atof(argv[1]);
+	   ImgResize = atof(argv[2]);
+	   xslide = atoi(argv[3]);
+	   yslide = atoi(argv[4]);
+	}
+    
     int windowSize = 3;
-    int yslide = atoi(argv[4]);
-    int xslide = atoi(argv[3]);
-    float hogThreshold = atof(argv[1]);
     double initialFrame = 100;
     double captureInterval = 2300;
    
@@ -92,9 +105,6 @@ int main(int argc, char ** argv){
         cout << "############## VIDEO FILE START #######################" << endl;
 
         std::vector<Rect> boundBox;
-
-
-        //cout << "videoFile name : " << videoFiles[i] << endl;
         string videoPath = Maindir + videoFiles[i];
 
         string destSubDirPath = destDir + videoFiles[i];
@@ -109,9 +119,6 @@ int main(int argc, char ** argv){
         }
             
         Mat planogramSrc,querySrc,frame;
-
-        //cout << "capturing planogram Image : " << endl;
-
         capture.read(frame);
         Mat planogramCol = frame.clone();
 
@@ -132,9 +139,7 @@ int main(int argc, char ** argv){
         capture.set(CAP_PROP_POS_FRAMES, captureInterval);
 
         while(capture.isOpened()){
-            //cout << "############## QUERY IMAGE START #######################" << endl;
-
-            //cout << "capturing query image..." << endl;
+      
             capture.read(frame);
 
            
@@ -172,11 +177,7 @@ int main(int argc, char ** argv){
 
                 makeAfolder(videoFolder);
 
-                //cout <<  "videoFolder : " << videoFolder << endl; 
-
                 int integrity = showNonMatches(planogramSrc,querySrc,nonMatchVector,ImgResize,videoFolder,videoFiles[i],(int)frameNum,myfile,boundBox);
-
-                //cout << "integrity : " << integrity << endl;
 
                 if(integrity == 1){
                     cout << "PLANOGRAM INTEGRITY MAINTAINED" << endl;
@@ -191,10 +192,7 @@ int main(int argc, char ** argv){
                 myfile << "integrity" << ',' <<  integrity << endl;
 
                 }
-                //cout << "############## QUERY IMAGE END #######################" << endl;
 
-            
-            //cout << "bounding box size : " << boundBox.size() << endl;
             for(int i = 0; i < boundBox.size();i++){
 
                  rectangle(frame,Point(boundBox[i].x,boundBox[i].y),
@@ -247,22 +245,11 @@ int showNonMatches(cv::Mat imgMatRaw, cv::Mat imgMatRaw_2, vector<Point2f> nonMa
     Mat mask;
 
     inRange(imgMat_2,Scalar(0,0,0), Scalar(0,0,0),mask);
-    //imwrite("../mask.jpg",mask);
     Mat labels,stats,centroids;
 
     int a = connectedComponentsWithStats(mask,labels,stats,centroids,8,CV_32S);
-    //cout << "connected components : " << a << endl;
-
-    //namedWindow("image", CV_WINDOW_NORMAL);
-    //imshow("image",mask);
-    //while (char(waitKey(1))!= 'q'){};
-
-    //cout << stats.rows << " " << stats.cols << endl;
-    //cout << centroids << endl;
-    //cout << stats << endl;
 
     float rescale = 1.0 / ImgResize;
-    //int patchResize = 3.0;
 
  
     bool omit;
@@ -273,12 +260,8 @@ int showNonMatches(cv::Mat imgMatRaw, cv::Mat imgMatRaw_2, vector<Point2f> nonMa
         omit = false;
 
         int hogArea = stats.at<int>(i,4);
-        //cout << "###################PATCH START " << i << " ###################" << endl;
-        //cout << "connected components area : " << hogArea << endl;
         int Area = (stats.at<int>(i,2) * stats.at<int>(i,3));
-        //cout << "Bounding box Area : " << Area << endl;
         float hogAreaRatio = (float)hogArea/float(Area);
-        //cout << "hogAreaRatio : " << hogAreaRatio << endl;
 
 
         if(hogArea > 42000){
@@ -294,33 +277,24 @@ int showNonMatches(cv::Mat imgMatRaw, cv::Mat imgMatRaw_2, vector<Point2f> nonMa
 
             Rect ROI = Rect(rescale * stats.at<int>(i,0), rescale * stats.at<int>(i,1), 
                 rescale * stats.at<int>(i,2),rescale * stats.at<int>(i,3));
-            //Rect query_rect = Rect(rescale * stats.at<int>(i,0), rescale * stats.at<int>(i,1), 
-            //    rescale * stats.at<int>(i,2),rescale * stats.at<int>(i,3));
 
             Rect plan_rect_bound, plan_rect_padded, query_rect_bound, query_rect_displace_padded;
 
             planoProcess(imgMatRaw,ROI,padding,plan_rect_bound,plan_rect_padded);
-            //cout << "plan bound : " << plan_rect_bound << endl;
             Mat ransacPlano = imgMatRaw(plan_rect_padded).clone();
             queryProcess(imgMatRaw_2,ROI,padding,displace_tolerance,query_rect_bound,query_rect_displace_padded);
-            //cout << "querybox : " << query_rect_bound << endl;
             Mat ransacQuery = imgMatRaw_2(query_rect_displace_padded).clone();
             bool plano2query = true;
-            string videoFolder1 = videoFolder + '/' + "plano2query/";
-            makeAfolder(videoFolder1);
 
-
-            float ratio_plano_to_query = ransacCompare(ransacPlano,ransacQuery,videoFolder1,i,myfile,Area,hogArea,frame_no,subDir,plano2query,plan_rect_bound,query_rect_bound);
+            float ratio_plano_to_query = ransacCompare(ransacPlano,ransacQuery,videoFolder,i,myfile,Area,hogArea,frame_no,subDir,plano2query,plan_rect_bound,query_rect_bound);
             planoProcess(imgMatRaw_2,ROI,padding,plan_rect_bound,plan_rect_padded);
             ransacPlano = imgMatRaw_2(plan_rect_padded).clone();
             queryProcess(imgMatRaw,ROI,padding,displace_tolerance,query_rect_bound,query_rect_displace_padded);
             ransacQuery = imgMatRaw(query_rect_displace_padded).clone();
             plano2query = false;
-            string videoFolder2 = videoFolder + '/' + "query2plano/";
-            makeAfolder(videoFolder2);
 
 
-            float ratio_query_to_plano = ransacCompare(ransacPlano,ransacQuery,videoFolder2,i,myfile,Area,hogArea,frame_no,subDir,plano2query,plan_rect_bound,query_rect_bound);
+            float ratio_query_to_plano = ransacCompare(ransacPlano,ransacQuery,videoFolder,i,myfile,Area,hogArea,frame_no,subDir,plano2query,plan_rect_bound,query_rect_bound);
 
             bool noChange = (((ratio_plano_to_query == -1) || (ratio_plano_to_query > 0.50)) && ((ratio_query_to_plano == -1) || (ratio_query_to_plano > 0.50))); 
 
@@ -343,11 +317,7 @@ int showNonMatches(cv::Mat imgMatRaw, cv::Mat imgMatRaw_2, vector<Point2f> nonMa
 
         }
      
-    }
-    //cout << "###################PATCH END###################" << endl;
-
-
-    
+    }    
 
     string write_final = videoFolder + "/" + "diff.jpg";
   
@@ -363,45 +333,29 @@ int showNonMatches(cv::Mat imgMatRaw, cv::Mat imgMatRaw_2, vector<Point2f> nonMa
     }
 
     return planogramIntegrity;
-         
-
-    //imwrite("../testing/results/bounding_box_results/lighting.jpg",imgMat);
-
-    //namedWindow("image", CV_WINDOW_NORMAL);
-    //imshow("image",imgMat);
-    //waitKey(0);
-    //while (char(waitKey(1))!= 'q'){};
-
 
 }
 
 void planoProcess(Mat imgMatRaw,Rect ROI, int padding,Rect &plan_rect_bound, Rect &plan_rect_padded){
 
     Mat img = imgMatRaw.clone();
-    //cout << "plan_rect : " << ROI << endl;
     plan_rect_padded = enlargeROI(img,ROI,padding);
-    //cout << "plan_rect_padded : " << plan_rect_padded << endl;
     plan_rect_bound.width = ROI.width;
     plan_rect_bound.height = ROI.height;
     plan_rect_bound.x = ROI.x - plan_rect_padded.x;
     plan_rect_bound.y = ROI.y - plan_rect_padded.y; 
-    //cout << "plan_rect_bound : " << plan_rect_bound << endl;
     
 }
 
 void queryProcess(Mat imgMatRaw_2,Rect ROI, int padding, int displace_tolerance, Rect &query_rect_bound, Rect &query_rect_displace_padded){
 
     Mat img = imgMatRaw_2.clone();
-    //cout << "query_rect : " << ROI << endl;
     Rect query_rect_displace = enlargeROI(imgMatRaw_2,ROI,displace_tolerance);
-    //cout << "query_rect_displace : " << query_rect_displace << endl;
     query_rect_displace_padded = enlargeROI(imgMatRaw_2,query_rect_displace,padding);
-    //cout << "query_rect_displace_padded : " << query_rect_displace_padded << endl;
     query_rect_bound.width = query_rect_displace.width;
     query_rect_bound.height = query_rect_displace.height;
     query_rect_bound.x = query_rect_displace.x - query_rect_displace_padded.x;
     query_rect_bound.y = query_rect_displace.y - query_rect_displace_padded.y;
-    //cout << "query_rect_bound : " << query_rect_bound << endl;
     
 }
 
@@ -417,20 +371,16 @@ Rect enlargeROI(Mat frm, Rect boundingBox, int padding) {
 float ransacCompare(cv:: Mat img_1, cv:: Mat img_2, string videoFold, int imgCount,ofstream& myfile,int Area,int hogArea,int frame_no,string subDir, bool plano2query, Rect plan_rect_bound, Rect query_rect_bound){
     
 
-    Mat img_object = img_1.clone();
-    //blur(img_object,img_object, Size(3, 3), Point(-1,-1));    
+    Mat img_object = img_1.clone();  
     
     Mat img_scene = img_2.clone();
-    //blur(img_scene, img_scene, Size(3, 3), Point(-1,-1));
     
     
     if(plano2query == true){
-        //cout << "plano2query ..." << endl; 
         myfile << "plano2query" << endl;
     }
     else{
-        //cout << "query2plano ..." << endl;
-        //myfile << "query2plano" << endl; 
+        myfile << "query2plano" << endl; 
     }
        
 
@@ -456,30 +406,7 @@ float ransacCompare(cv:: Mat img_1, cv:: Mat img_2, string videoFold, int imgCou
     std::vector<Point2f> objXY;
     std::vector<Point2f> sceneXY;
 
-    //cout << descriptors_object.rows << " " << descriptors_object.cols << endl;
-    //cout << descriptors_scene.rows << " " << descriptors_scene.cols << endl;
-
     int myradius = 1; 
-
-    //cout << "keypoints_object_before : " << keypoints_object_before.size() << endl;
-    //cout << "keypoints_scene_before : " << keypoints_scene_before.size() << endl;
-    //cout << "descriptors_object_before_filtering_rows : " << descriptors_object_before_filtering.rows << "cols : " << descriptors_object_before_filtering.cols << endl;
-    //cout << "descriptors_scene_before_filtering_rows : " << descriptors_scene_before_filtering.rows << "cols : " << descriptors_scene_before_filtering.cols << endl;
-
-    //cout << "patch_object rows : " << img_object.rows << "cols : " << img_object.cols << endl;
-    //cout << "patch_scene rows : " << img_scene.rows << "cols : " << img_scene.cols << endl;
-
-    string patchOne = videoFold + "/" + std::to_string(imgCount) + "/";
-    makeAfolder(patchOne);
-    string patchTwo = videoFold + "/" + std::to_string(imgCount) + "/";
-    makeAfolder(patchTwo);
-
-    string one = patchOne + "/one_original.jpg";
-    imwrite(one,img_object);
-
-   
-    string two = patchTwo + "/two_original.jpg";
-    imwrite(two,img_scene);
 
     for(int i = 0; i < descriptors_object_before_filtering.rows; i++){
         Point2f point (keypoints_object_before[i].pt);
@@ -489,29 +416,7 @@ float ransacCompare(cv:: Mat img_1, cv:: Mat img_2, string videoFold, int imgCou
             descriptors_object.push_back(descriptors_object_before_filtering.row(i));
             circle(img_object,cvPoint(objXY.back().x,objXY.back().y),myradius,Scalar(255,255,255),-1,8); 
         }
-        /*else
-            if(imgCount == 2){
-                circle(img_object,point,myradius,Scalar(255,255,255),-1,8);
-                cout << "point : " << point << endl;
-            }*/
     }
-
-    //cout << "objXY : " << objXY.size() << endl;
-    //cout << "keypoints_object : " << keypoints_object.size() << endl;
-   
-    //cout << "descriptors_object : " << descriptors_object.rows << " " << descriptors_object.cols << endl;
-    
-
-
-
-    //descriptors_object.resize(0,descriptors_object_before_filtering.cols);
-
-    //cout << "descriptors_object_after_resize : " << descriptors_object.rows << " " << descriptors_object.cols << endl;
-
-    
-
-
-
 
     for(int j = 0; j < descriptors_scene_before_filtering.rows; j++){
         Point2f point (keypoints_scene_before[j].pt);
@@ -522,55 +427,20 @@ float ransacCompare(cv:: Mat img_1, cv:: Mat img_2, string videoFold, int imgCou
             circle(img_scene,cvPoint(sceneXY.back().x,sceneXY.back().y),myradius,Scalar(255,255,255),-1,8);  
         }
     }
-
-    //cout << "sceneXY : " << sceneXY.size() << endl;
-
-    //cout << "keypoints_scene : " << keypoints_scene.size() << endl;
-    //cout << "descriptors_scene : " << descriptors_scene.rows << " " << descriptors_scene.cols << endl;
-
-
-    //descriptors_scene.resize(0,descriptors_scene_before_filtering.cols);
-
-    //cout << "descriptors_scene_after_resize : " << descriptors_scene.rows << " " << descriptors_scene.cols << endl;
-
-
  
-    
- 
-    one = patchOne + "/one_keypoints.jpg";
-    imwrite(one,img_object);
-
-   
-    two = patchTwo + "/two_keypoints.jpg";
-    imwrite(two,img_scene);
-
-    //namedWindow("image object",CV_WINDOW_NORMAL);
-    //imshow("image object",img_object);
-    //waitKey(0);
-
-    //namedWindow("image scene",CV_WINDOW_NORMAL);
-    //imshow("image scene",img_scene);
-    //waitKey(0);
-
     std::vector<std::vector<cv::DMatch> > matches;
     std::vector<DMatch> good_matches;
 
     cv::BFMatcher matcher(NORM_HAMMING, false);
 
-    //cout << "obj XY: " << objXY.size() << " " << "sceneXY :" << sceneXY.size() << endl;
-
     myfile << objXY.size() << ',' << sceneXY.size() << ',';
 
     if(objXY.size() < 6){
-        //cout << "no or very few features can be found in planogram" << endl;
-
         myfile << ',' << ',' << "-1" << endl;
-      
         return -1;  
     }
 
     if(sceneXY.size() == 0){
-        //cout << "no points could be found in query image. There is change" << endl;
         myfile << ',' << ',' << '0' << endl;
         return 0;
     }
@@ -587,12 +457,8 @@ float ransacCompare(cv:: Mat img_1, cv:: Mat img_2, string videoFold, int imgCou
     }
 
     myfile << good_matches.size() << ',';
-
-    //cout << "good_matches : " << good_matches.size() << endl;
    
-
     if(good_matches.size() < 12){
-        //cout << "Too less good matches. Nothing can be said." << endl;
         myfile << ',' << "-1" << endl;
         return -1;
     }
@@ -608,7 +474,6 @@ float ransacCompare(cv:: Mat img_1, cv:: Mat img_2, string videoFold, int imgCou
     Mat H = findHomography(obj, scene, CV_RANSAC,tolerance);
 
     if (H.empty()){
-        //cout << "Homography Matrix is empty. Ratio is zero. There is change." << endl;
         myfile << ',' << '0' << endl;
     
         return 0;
@@ -619,13 +484,6 @@ float ransacCompare(cv:: Mat img_1, cv:: Mat img_2, string videoFold, int imgCou
     std::vector<DMatch> very_good_matches;
     
     double tolerance_2 = max(1,max(img_object.rows,img_object.cols)/8);
-
-
-    //cout << img_scene.rows << " " << img_scene.cols << endl;
-    //cout << img_object.rows << " " << img_object.cols << endl;
-    //cout << "tolerance :" << tolerance << endl;
-    //cout << "tolerance_2 : " << tolerance_2 << endl;
-
     double mean_x = 0.0;
     double mean_y = 0.0;
 
@@ -655,14 +513,9 @@ float ransacCompare(cv:: Mat img_1, cv:: Mat img_2, string videoFold, int imgCou
         }
     } 
 
-    myfile << very_good_matches.size() << ','; 
-
-    //cout << "very good matches : " << very_good_matches.size() << endl;
-
-   
+    myfile << very_good_matches.size() << ',';  
 
     if(very_good_matches.size() == 0){
-        //cout << "no very good matches. Terminating compare. There is change." << endl;
         myfile << '0' << endl;
         return 0;
     }
@@ -714,13 +567,6 @@ float ransacCompare(cv:: Mat img_1, cv:: Mat img_2, string videoFold, int imgCou
         }
     }
 
-    //cout << "unique_matches : " << unique_matches.size() << endl;
-     
- 
-    //namedWindow("image Match",CV_WINDOW_NORMAL);
-    //imshow("image Match",img_matches);
-    //waitKey(0);
-
     float ratio = ((float)unique_matches.size()/(float)good_matches.size());
 
     myfile << ratio << endl;
@@ -766,9 +612,6 @@ vector<vector<vector<float> > > extractHOG(cv::Mat dataMat, vl_size& hogWidth, v
     vl_size cellSize = 8;
     vl_size numChannels = 1;
 
-    //VlHogVariantUoctti
-    //VlHogVariantDalalTriggs
-
     VlHog * hog = vl_hog_new(VlHogVariantDalalTriggs, numOrientations, VL_FALSE);
 
     vl_hog_put_image(hog, hogData, dataMat.cols, dataMat.rows, numChannels, cellSize);
@@ -780,10 +623,7 @@ vector<vector<vector<float> > > extractHOG(cv::Mat dataMat, vl_size& hogWidth, v
 
     finalHOG = (float *)vl_malloc(hogWidth*hogHeight*hogDimension*sizeof(float));
     vl_hog_extract(hog,finalHOG);
-    //vector<vector<vector<float> > > hogVec;
-
-
-
+  
     vector<vector<vector<float> > > hogVec(hogHeight, vector<vector<float> >(hogWidth, vector<float>(hogDimension)));
 
  
@@ -833,8 +673,7 @@ double windowDistanceNorm(std::vector<float> window1,std::vector<float> window2)
 
 std::vector<Point2f> formWindowAndCompare(vector<vector<vector<float> > > planoHog,vector<vector<vector<float> > > queryHog, 
     int windowSize, int xslide, int yslide, vl_size hogWidth, vl_size hogHeight, vl_size hogDimension, float hogThreshold){
-    //std::cout<<hogWidth<<" "<<hogHeight<<" "<<hogDimension<<"\n";
-     int windowForm = (windowSize - 1) / 2; //assertion required
+     int windowForm = (windowSize - 1) / 2; 
      bool found;
      std::vector<Point2f> nonmatchesHOG;
      int count = 0;
@@ -843,7 +682,6 @@ std::vector<Point2f> formWindowAndCompare(vector<vector<vector<float> > > planoH
         for(int j = (0 + (xslide + windowForm)); j < (hogWidth - (xslide + windowForm)); j++){
 
             found = false;
-            //planogram image window
             std::vector<float> window1;
             float dimensionSum;
             float dimensionAvg;
@@ -862,9 +700,6 @@ std::vector<Point2f> formWindowAndCompare(vector<vector<vector<float> > > planoH
                 window1.push_back(dimensionAvg);
             }
 
-            //cout << window1.size() << endl;
-
-            //query image window
             for(int a = (i - yslide); a <= (i + yslide); a++){
                 for(int b = (j - xslide); b <= (j + xslide); b++){
 
@@ -880,10 +715,8 @@ std::vector<Point2f> formWindowAndCompare(vector<vector<vector<float> > > planoH
                             }
                         }
                     dimensionAvg = dimensionSum / (float)numWindows;
-                    //cout << "dimensionAvg : " << dimensionAvg << endl;
                     window2.push_back(dimensionAvg);
                     }
-            //cout << window2.size() << endl;
 
 
               
@@ -893,15 +726,7 @@ std::vector<Point2f> formWindowAndCompare(vector<vector<vector<float> > > planoH
                         break;
                     }
 
-
-                    //double a = 1.0-windowDistanceNorm(window1,window2);
-
                     double a = absoluteDistance(window1,window2);
-
-                    //cout << "histogram distance : " << a << endl;
-                    //double a = compareHist(window1,window2,3);
-                    //a = a/window1.size();
-                    //cout << a << endl;
 
                     if (a < hogThreshold){
                         found = true;
@@ -939,7 +764,6 @@ double absoluteDistance(std::vector<float> window1,std::vector<float> window2){
        
     }
     sum = sum / window1.size();
-    //cout << "distance : " << sum << endl;
     return sum;
 }
 

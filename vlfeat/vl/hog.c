@@ -1011,20 +1011,20 @@ vl_hog_extract (VlHog * self, float * features)
           double hc3 = ha3 + hb3 ;
           double hc4 = ha4 + hb4 ;
 
-          ha1 = VL_MIN(2.0, ha1) ;
-          ha2 = VL_MIN(2.0, ha2) ;
-          ha3 = VL_MIN(2.0, ha3) ;
-          ha4 = VL_MIN(2.0, ha4) ;
+          ha1 = VL_MIN(0.2, ha1) ;
+          ha2 = VL_MIN(0.2, ha2) ;
+          ha3 = VL_MIN(0.2, ha3) ;
+          ha4 = VL_MIN(0.2, ha4) ;
 
-          hb1 = VL_MIN(2.0, hb1) ;
-          hb2 = VL_MIN(2.0, hb2) ;
-          hb3 = VL_MIN(2.0, hb3) ;
-          hb4 = VL_MIN(2.0, hb4) ;
+          hb1 = VL_MIN(0.2, hb1) ;
+          hb2 = VL_MIN(0.2, hb2) ;
+          hb3 = VL_MIN(0.2, hb3) ;
+          hb4 = VL_MIN(0.2, hb4) ;
 
-          hc1 = VL_MIN(2.0, hc1) ;
-          hc2 = VL_MIN(2.0, hc2) ;
-          hc3 = VL_MIN(2.0, hc3) ;
-          hc4 = VL_MIN(2.0, hc4) ;
+          hc1 = VL_MIN(0.2, hc1) ;
+          hc2 = VL_MIN(0.2, hc2) ;
+          hc3 = VL_MIN(0.2, hc3) ;
+          hc4 = VL_MIN(0.2, hc4) ;
 
           t1 += hc1 ;
           t2 += hc2 ;
