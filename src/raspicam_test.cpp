@@ -8,7 +8,7 @@ int main ( int argc,char **argv ) {
     time_t timer_begin,timer_end;
     raspicam::RaspiCam_Cv Camera;
     cv::Mat image;
-    int nCount=100;
+    int nCount=1;
     //set camera params
     Camera.set( CV_CAP_PROP_FORMAT, CV_8UC1 );
     //Open camera
@@ -29,6 +29,6 @@ int main ( int argc,char **argv ) {
     double secondsElapsed = difftime ( timer_end,timer_begin );
     cout<< secondsElapsed<<" seconds for "<< nCount<<"  frames : FPS = "<<  ( float ) ( ( float ) ( nCount ) /secondsElapsed ) <<endl;
     //save image 
-    cv::imwrite("raspicam_cv_image.jpg",image);
-    cout<<"Image saved at raspicam_cv_image.jpg"<<endl;
+    cv::imwrite("../testing/raspicam_results/raspicam_cv_image.jpg",image);
+    cout<<"Image saved at testing folder"<<endl;
 }
