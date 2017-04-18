@@ -776,7 +776,7 @@ std::vector<string> getDirElements(string dir)
     }
 
     while ((dirp = readdir(dp)) != NULL) {
-        if(string(dirp->d_name) != "." && string(dirp->d_name) != "..")
+        if(string(dirp->d_name) != "." && string(dirp->d_name) != ".." && string(dirp->d_name) != ".." && string(dirp->d_name) != ".gitignore" )
             files.push_back(string(dirp->d_name));
     }
 
