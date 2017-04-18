@@ -92,7 +92,7 @@ int main(int argc, char ** argv){
     string destDir = string("../testing/video-data-results/");
 
     ofstream myfile;
-    myfile.open("result_stats.csv");
+    myfile.open("../stats/reports.csv");
     myfile << "video_file_name,frame_number,patch_name,connected_component_area,bounding_box_area,initial_plano_featues,initial_query_features,good_matches,very_good_matches,ratio" << endl;
 
     cout << "entering capture mode ... " << endl;
